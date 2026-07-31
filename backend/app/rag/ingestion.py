@@ -12,7 +12,7 @@ from typing import List
 from qdrant_client import QdrantClient
 from llama_index.core import Document, SimpleDirectoryReader, StorageContext, VectorStoreIndex, Settings
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 
 
@@ -65,9 +65,22 @@ def run_ingestion():
     print("=" * 60)
     
     # 2. Configure LlamaIndex Embeddings Model globally
-    # BAAI/bge-small-en-v1.5 produces 384-dimension vectors
-    print("Loading HuggingFace BGE Embedding Model...")
-    embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        # Fallback to check if it's set as GOOGLE_API_KEY
+        gemini_key = os.getenv("GOOGLE_API_KEY")
+        
+    if not gemini_key:
+        raise ValueError("❌ GEMINI_API_KEY not found in .env! Please set it to proceed with cloud embeddings.")
+        
+    print("Loading Google Gemini Cloud Embedding Model...")
+    embed_model = GeminiEmbedding(
+        model_name="models/gemini-embedding-001",
+        api_key=gemini_key
+    )
     Settings.embed_model = embed_model
     Settings.llm = None  # Ingestion doesn't need an LLM
     

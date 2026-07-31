@@ -67,9 +67,28 @@ export default function Home() {
 
   // ─── Initial Load & Persistence ───
   useEffect(() => {
-    fetchHealth()
-      .then(() => setApiHealthy(true))
-      .catch(() => setApiHealthy(false));
+    // Check backend health, and start polling if it doesn't respond instantly (sleeping on Render free-tier)
+    const checkHealth = () => {
+      fetchHealth()
+        .then(() => setApiHealthy(true))
+        .catch(() => {
+          setApiHealthy(false);
+          // Retry every 4 seconds until the server wakes up
+          const interval = setInterval(() => {
+            fetchHealth()
+              .then(() => {
+                setApiHealthy(true);
+                clearInterval(interval);
+              })
+              .catch(() => {
+                setApiHealthy(false);
+              });
+          }, 4000);
+          return () => clearInterval(interval);
+        });
+    };
+
+    checkHealth();
 
     const savedTheme = localStorage.getItem("coach_theme") as "dark" | "light";
     if (savedTheme) setTheme(savedTheme);
@@ -444,6 +463,21 @@ export default function Home() {
             {theme === "dark" ? "☀️" : "🌙"}
           </button>
         </header>
+
+        {/* Waking up banner */}
+        {!apiHealthy && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-5 py-3 text-xs text-amber-500 flex items-center justify-between animate-pulse transition-all">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+              <span>
+                <strong>Note:</strong> Connecting to cloud server. If it is sleeping, waking up takes ~45 seconds. Please wait...
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Chat Message Feed */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">

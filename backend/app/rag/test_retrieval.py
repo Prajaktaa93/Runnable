@@ -1,17 +1,29 @@
 import os
 from qdrant_client import QdrantClient
 from llama_index.core import VectorStoreIndex, Settings
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.core.vector_stores.types import MetadataFilter, MetadataFilters, FilterOperator
 
+from dotenv import load_dotenv
+
 def test_retrieval():
+    load_dotenv()
     print("=" * 60)
     print("🔍 TESTING METADATA-FILTERED VECTOR RETRIEVAL")
     print("=" * 60)
     
     # 1. Setup embedding model
-    embed_model = HuggingFaceEmbedding(model_name="BAAI/bge-small-en-v1.5")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        gemini_key = os.getenv("GOOGLE_API_KEY")
+    if not gemini_key:
+        raise ValueError("❌ GEMINI_API_KEY not found in .env! Please set it to proceed.")
+        
+    embed_model = GeminiEmbedding(
+        model_name="models/gemini-embedding-001",
+        api_key=gemini_key
+    )
     Settings.embed_model = embed_model
     Settings.llm = None
     
