@@ -36,6 +36,28 @@ app.add_middleware(
 def health_check():
     return {"status": "healthy", "message": "Runner RAG API is operational"}
 
+@app.get("/api/debug")
+def debug_check():
+    import os
+    groq = os.getenv("GROQ_API_KEY", "")
+    gemini = os.getenv("GEMINI_API_KEY", "")
+    qdrant_url = os.getenv("QDRANT_URL", "")
+    qdrant_key = os.getenv("QDRANT_API_KEY", "")
+    
+    return {
+        "groq_key_exists": len(groq) > 0,
+        "groq_key_len": len(groq),
+        "groq_key_val_hint": groq[:5] + "..." + groq[-5:] if len(groq) > 10 else groq,
+        "gemini_key_exists": len(gemini) > 0,
+        "gemini_key_len": len(gemini),
+        "gemini_key_val_hint": gemini[:5] + "..." + gemini[-5:] if len(gemini) > 10 else gemini,
+        "qdrant_url_exists": len(qdrant_url) > 0,
+        "qdrant_url": qdrant_url[:15] + "..." if qdrant_url else "",
+        "qdrant_key_exists": len(qdrant_key) > 0,
+        "qdrant_key_len": len(qdrant_key),
+        "qdrant_key_val_hint": qdrant_key[:5] + "..." + qdrant_key[-5:] if len(qdrant_key) > 10 else qdrant_key,
+    }
+
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat_endpoint(request: ChatRequest):
