@@ -94,13 +94,13 @@ def setup_rag_components():
     gemini_key = os.getenv("GEMINI_API_KEY")
     groq_key = os.getenv("GROQ_API_KEY")
     
-    if gemini_key and gemini_key.strip():
-        print("🤖 Using Google Gemini Flash LLM...")
-        from llama_index.llms.gemini import Gemini
-        llm = Gemini(model_name="models/gemini-1.5-flash", api_key=gemini_key)
-    elif groq_key and groq_key.strip():
-        print("🤖 Using Groq Llama 3 LLM (Fallback)...")
+    if groq_key and groq_key.strip():
+        print("🤖 Using Groq Llama 3 LLM...")
         llm = GroqLLM()
+    elif gemini_key and gemini_key.strip():
+        print("🤖 Using Google Gemini Flash LLM (Fallback)...")
+        from llama_index.llms.gemini import Gemini
+        llm = Gemini(model_name="models/gemini-flash-latest", api_key=gemini_key)
     else:
         raise ValueError("❌ No API Keys found! Please set GEMINI_API_KEY or GROQ_API_KEY in .env.")
         
