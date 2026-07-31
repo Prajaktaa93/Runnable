@@ -1,9 +1,10 @@
 fastapi==0.111.0
 uvicorn==0.30.1
 llama-index==0.10.50
-llama-index-llms-gemini
-llama-index-embeddings-gemini
-llama-index-vector-stores-qdrant
-qdrant-client
+llama-index-llms-gemini==0.1.7
+llama-index-embeddings-gemini==0.1.6
+llama-index-vector-stores-qdrant==0.2.1
+qdrant-client==1.9.1
 python-dotenv==1.0.1
 pydantic==2.7.4
+openai
