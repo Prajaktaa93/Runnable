@@ -77,8 +77,9 @@ def chat_endpoint(request: ChatRequest):
             citations=result["citations"]
         )
     except Exception as e:
-        # If something goes wrong, return a HTTP 500 Internal Server Error
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        err_msg = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=err_msg)
 
 
 # ─── /api/plan: Parse a coach response into a structured checklist ───
