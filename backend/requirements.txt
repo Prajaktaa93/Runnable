@@ -8,3 +8,5 @@ qdrant-client==1.9.1
 python-dotenv==1.0.1
 pydantic==2.7.4
 openai
+tiktoken==0.7.0
+

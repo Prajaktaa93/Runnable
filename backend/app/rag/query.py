@@ -7,6 +7,9 @@ from llama_index.core.response_synthesizers import CompactAndRefine
 from llama_index.core.vector_stores.types import MetadataFilter, MetadataFilters, FilterOperator
 from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
+import tiktoken
+from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
+
 
 # Load environment variables
 load_dotenv()
@@ -108,6 +111,12 @@ def setup_rag_components():
 
 def query_rag(user_query: str, user_profile: dict) -> dict:
     """Runs a personalized query against the RAG knowledge base using profile filters."""
+    # Initialize token counter at the very beginning so all components inherit it
+    token_counter = TokenCountingHandler(
+        tokenizer=tiktoken.encoding_for_model("gpt-3.5-turbo").encode
+    )
+    Settings.callback_manager = CallbackManager([token_counter])
+
     # 1. Setup embedding and LLM
     setup_rag_components()
     
@@ -167,9 +176,11 @@ def query_rag(user_query: str, user_profile: dict) -> dict:
         retriever=retriever,
         response_synthesizer=response_synthesizer
     )
-    
     # 7. Execute Query
     response = query_engine.query(user_query)
+    
+    # Extract the count
+    tokens_used = token_counter.total_llm_token_count
     
     # 8. Extract citations (file names of source documents)
     citations = []
@@ -181,6 +192,7 @@ def query_rag(user_query: str, user_profile: dict) -> dict:
     return {
         "answer": str(response),
         "citations": citations,
+        "tokens_used": tokens_used,
         "source_nodes": [
             {
                 "file_name": node.metadata.get("file_name"),

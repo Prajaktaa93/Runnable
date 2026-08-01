@@ -4,6 +4,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 export interface ChatResponse {
   answer: string;
   citations: string[];
+  tokens_used?: number;
 }
 
 // TypeScript definition for the backend health check response

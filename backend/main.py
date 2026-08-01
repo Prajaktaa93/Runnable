@@ -16,7 +16,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     citations: List[str]
-
+    tokens_used: int = 0 
 # 1. Create a FastAPI app instance
 app = FastAPI(title="RUN agent!")
 
@@ -74,7 +74,8 @@ def chat_endpoint(request: ChatRequest):
         # 3. Return the response structured as a ChatResponse
         return ChatResponse(
             answer=result["answer"],
-            citations=result["citations"]
+            citations=result["citations"],
+            tokens_used=result.get("tokens_used", 0)
         )
     except Exception as e:
         import traceback
@@ -144,7 +145,7 @@ Rules:
             temperature=0.1,
             max_tokens=512,
         )
-        raw = completion.choices[0].message.content.strip()
+        raw = (completion.choices[0].message.content or "").strip()
 
         # Strip any accidental markdown code fences
         raw = re.sub(r"```(?:json)?", "", raw).strip().strip("`").strip()

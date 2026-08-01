@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { sendChatMessage, fetchHealth, generatePlan, PlanTask } from "./services/api";
+import { Zap } from "lucide-react";
 
 interface Message {
   sender: "user" | "coach";
@@ -9,6 +10,7 @@ interface Message {
   citations?: string[];
   isPlanEligible?: boolean;   // true if message looks like a plan/schedule
   planAdded?: boolean;        // true once user clicked to generate checklist
+  tokens_used?: number;
 }
 
 interface ChatSession {
@@ -55,6 +57,7 @@ export default function Home() {
   const [trackers, setTrackers] = useState<TrackerDot[]>([]);
   const [openTrackerId, setOpenTrackerId] = useState<string | null>(null);
   const [generatingPlanForMsgIdx, setGeneratingPlanForMsgIdx] = useState<number | null>(null);
+  const [showTokensForMsg, setShowTokensForMsg] = useState<{ [key: number]: boolean }>({});
 
   // ─── UI Panel states ───
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(true);
@@ -236,6 +239,7 @@ export default function Home() {
                 citations: response.citations,
                 isPlanEligible: isPlanMessage(coachText),
                 planAdded: false,
+                tokens_used: response.tokens_used,
               },
             ],
           };
@@ -521,6 +525,24 @@ export default function Home() {
                   {/* "✓ added to tracker" confirmation */}
                   {msg.planAdded && (
                     <span className="text-[10px] text-emerald-500 font-semibold mt-1 ml-1">✓ added to tracker</span>
+                  )}
+                  
+                  {/* Token Count Icon */}
+                  {msg.tokens_used && (
+                    <div className="mt-2 flex justify-end items-center relative">
+                      {showTokensForMsg[index] && (
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 mr-2 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full shadow-sm animate-in fade-in zoom-in duration-200">
+                          ⚡ {msg.tokens_used} tokens
+                        </span>
+                      )}
+                      <button 
+                        onClick={() => setShowTokensForMsg(prev => ({ ...prev, [index]: !prev[index] }))}
+                        className="text-yellow-500 hover:text-yellow-600 transition-colors drop-shadow-sm hover:scale-110 duration-200"
+                        title="View Token Usage"
+                      >
+                        <Zap size={16} fill="currentColor" />
+                      </button>
+                    </div>
                   )}
                 </div>
               ) : (
