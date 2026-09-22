@@ -1,0 +1,9 @@
+{
+    "python.defaultInterpreterPath": "/Users/prajaktagunjal03gmail.com/RAG project/backend/venv/bin/python",
+    "python.analysis.extraPaths": [
+        "/Users/prajaktagunjal03gmail.com/RAG project/backend"
+    ],
+    "python.pythonPath": "/Users/prajaktagunjal03gmail.com/RAG project/backend/venv/bin/python",
+    "python.analysis.venvPath": "/Users/prajaktagunjal03gmail.com/RAG project/backend",
+    "python.analysis.venv": "venv"
+}

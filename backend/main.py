@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from fastapi import HTTPException
 from app.rag.query import query_rag
 
+#schemas and routes are in the one single file.
 
 # Schema for the incoming request from the Next.js frontend
 class ChatRequest(BaseModel):
@@ -140,7 +141,7 @@ Rules:
 
     try:
         completion = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="qwen/qwen3.8-27b",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1,
             max_tokens=512,

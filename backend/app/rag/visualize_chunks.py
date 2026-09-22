@@ -33,7 +33,7 @@ def custom_markdown_reader(file_path: str):
         if key not in clean_metadata:
             clean_metadata[key] = "all"
 
-    return Document(text=text_content, metadata=clean_metadata)
+    return Document(text=text_content, metadata=clean_metadata)  # type: ignore
 
 def build_visualizer():
     print("=" * 60)
@@ -68,8 +68,8 @@ def build_visualizer():
             "experience_level": node.metadata.get("experience_level", "all"),
             "distance_tier": node.metadata.get("distance_tier", "all"),
             "source": node.metadata.get("source", "unknown"),
-            "length": len(node.text),
-            "text": node.text
+            "length": len(node.text),  # type: ignore
+            "text": node.text  # type: ignore
         })
         
     # Generate HTML content
@@ -349,7 +349,7 @@ def build_visualizer():
                 <div class="stat-label">Total Chunks</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">{int(sum(len(n.text) for n in nodes)/len(nodes)) if nodes else 0}</div>
+                <div class="stat-value">{int(sum(len(n.get_content()) for n in nodes)/len(nodes)) if nodes else 0}</div>
                 <div class="stat-label">Avg Chunk Size (chars)</div>
             </div>
         </div>

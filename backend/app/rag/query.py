@@ -47,7 +47,7 @@ from pydantic import Field
 from openai import OpenAI
 
 class GroqLLM(CustomLLM):
-    model_name: str = "llama-3.1-8b-instant"
+    model_name: str = "qwen/qwen3.8-27b"
     temperature: float = 0.0
     
     @property
@@ -56,7 +56,7 @@ class GroqLLM(CustomLLM):
             context_window=131072,
             num_output=1024,
             is_chat_model=True,
-            model_name="llama-3.1-8b-instant"
+            model_name="qwen/qwen3.8-27b"
         )
         
     @llm_completion_callback()

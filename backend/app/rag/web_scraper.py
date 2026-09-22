@@ -147,7 +147,7 @@ Article text:
                 max_tokens=300,
             )
             # Parse JSON from response
-            json_str = response.choices[0].message.content.strip()
+            json_str = (response.choices[0].message.content or "").strip()
             # Remove markdown code fences if present
             json_str = json_str.replace("```json", "").replace("```", "").strip()
             metadata = json.loads(json_str)
@@ -169,6 +169,15 @@ Article text:
                     "title": "Untitled Article",
                     "source": source
                 }
+
+    return {
+        "category": "unknown",
+        "distance_tier": "all",
+        "experience_level": "all",
+        "topic": "general",
+        "title": "Untitled Article",
+        "source": source
+    }
 
 
 # ─── STEP 5: Save as .md file with frontmatter ───
