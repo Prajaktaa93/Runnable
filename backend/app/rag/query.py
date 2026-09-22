@@ -1,50 +1,56 @@
 import os
+from typing import Any
+
+import tiktoken
 from dotenv import load_dotenv
-from qdrant_client import QdrantClient
-from llama_index.core import VectorStoreIndex, Settings, PromptTemplate
+from llama_index.core import PromptTemplate, Settings, VectorStoreIndex
+from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response_synthesizers import CompactAndRefine
-from llama_index.core.vector_stores.types import MetadataFilter, MetadataFilters, FilterOperator
+from llama_index.core.vector_stores.types import (
+    FilterOperator,
+    MetadataFilter,
+    MetadataFilters,
+)
 from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
-import tiktoken
-from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
-
+from qdrant_client import QdrantClient
 
 # Load environment variables
 load_dotenv()
 
 # System prompt layout for personalized, grounded running coach replies
 RAG_SYSTEM_PROMPT = (
-    "You are an expert running coach and sports medicine assistant.\n"
+    "You are Runnable, a friendly and expert running coach and sports medicine assistant.\n"
     "The user's profile is as follows:\n"
+    "- Age: {age}\n"
+    "- Gender: {gender}\n"
     "- Experience Level: {experience_level}\n"
     "- Goal Distance: {distance_tier}\n"
     "\n"
-    "Context information is below:\n"
+    "Context information retrieved from our running knowledge base is below:\n"
     "---------------------\n"
     "{context_str}\n"
     "---------------------\n"
     "Guidelines:\n"
-    "1. Answer the query strictly using the provided context. If the context doesn't contain the answer, say: "
-    "'I don't have enough information in my running database to answer this.'\n"
-    "2. Personalize the answer to the user's experience level and distance goals where appropriate.\n"
-    "3. Keep the tone encouraging, professional, and practical.\n"
-    "4. Under NO circumstances should you make up facts or use external knowledge.\n"
+    "1. Use the context above as your primary source. Synthesize and build upon it to give a complete, helpful answer. "
+    "If the context contains partial information, use it to construct a full answer.\n"
+    "2. Only say you lack information if the context is completely unrelated to the user's question.\n"
+    "3. Personalize the answer based on the user's age, gender, experience level, and goal distance where relevant.\n"
+    "4. Keep the tone encouraging, warm, professional, and practical.\n"
     "5. Safety Guardrail: If the query mentions any active injuries, pain, or symptoms (e.g. shin splints, runner's knee, dizziness, joint pain), "
     "you MUST include a prominent medical disclaimer advising them to consult a medical doctor or sports physician before continuing.\n"
-    "6. Citations: You MUST cite the source of your information by including bracketed file names of the files containing the info (e.g. [shin_splints_23.md]) "
-    "at the end of sentences or paragraphs where that information is used.\n"
+    "6. Citations: At the end of each paragraph or key piece of advice, cite the source file in brackets (e.g. [starting_a_running_routine_16.md]).\n"
     "\n"
     "User Query: {query_str}\n"
     "Answer: "
 )
 
-from llama_index.core.llms.custom import CustomLLM
-from llama_index.core.llms import LLMMetadata, CompletionResponse, CompletionResponseGen
+from llama_index.core.llms import CompletionResponse, CompletionResponseGen, LLMMetadata
 from llama_index.core.llms.callbacks import llm_completion_callback
-from pydantic import Field
+from llama_index.core.llms.custom import CustomLLM
 from openai import OpenAI
+
 
 class GroqLLM(CustomLLM):
     model_name: str = "qwen/qwen3.8-27b"
@@ -54,13 +60,13 @@ class GroqLLM(CustomLLM):
     def metadata(self) -> LLMMetadata:
         return LLMMetadata(
             context_window=131072,
-            num_output=1024,
+            num_output=2048,
             is_chat_model=True,
             model_name="qwen/qwen3.8-27b"
         )
         
     @llm_completion_callback()
-    def complete(self, prompt: str, **kwargs) -> CompletionResponse:
+    def complete(self, prompt: str, formatted: bool = False, **kwargs: Any) -> CompletionResponse:
         client = OpenAI(
             api_key=os.getenv("GROQ_API_KEY"),
             base_url="https://api.groq.com/openai/v1"
@@ -69,13 +75,14 @@ class GroqLLM(CustomLLM):
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
             temperature=self.temperature,
-            max_tokens=self.metadata.num_output
+            max_tokens=2048
         )
-        return CompletionResponse(text=response.choices[0].message.content)
+        text_content = response.choices[0].message.content or ""
+        return CompletionResponse(text=text_content)
 
     @llm_completion_callback()
-    def stream_complete(self, prompt: str, **kwargs) -> CompletionResponseGen:
-        response = self.complete(prompt, **kwargs)
+    def stream_complete(self, prompt: str, formatted: bool = False, **kwargs: Any) -> CompletionResponseGen:
+        response = self.complete(prompt, formatted=formatted, **kwargs)
         yield response
 
 def setup_rag_components():
@@ -137,27 +144,36 @@ def query_rag(user_query: str, user_profile: dict) -> dict:
     # 3. Load Vector Store Index
     index = VectorStoreIndex.from_vector_store(vector_store=vector_store)
     
-    # 4. Construct Metadata Filters using Qdrant-supported ANY operator
-    filters = MetadataFilters(
-        filters=[
+    # 4. Construct Metadata Filters — only apply if user has filled in their profile
+    exp_level = user_profile.get("experience_level", "").strip()
+    dist_tier = user_profile.get("distance_tier", "").strip()
+    
+    # Build filter list only for fields that are actually set by the user
+    filter_list = []
+    if exp_level and exp_level != "all":
+        filter_list.append(
             MetadataFilter(
                 key="experience_level",
-                value=[user_profile.get("experience_level", "all"), "all"],
-                operator=FilterOperator.ANY
-            ),
-            MetadataFilter(
-                key="distance_tier",
-                value=[user_profile.get("distance_tier", "all"), "all"],
+                value=[exp_level, "all"],
                 operator=FilterOperator.ANY
             )
-        ]
-    )
+        )
+    if dist_tier and dist_tier != "all":
+        filter_list.append(
+            MetadataFilter(
+                key="distance_tier",
+                value=[dist_tier, "all"],
+                operator=FilterOperator.ANY
+            )
+        )
+    
+    # Apply filters only if any were set; otherwise retrieve from entire knowledge base
+    retriever_kwargs = {"similarity_top_k": 6}
+    if filter_list:
+        retriever_kwargs["filters"] = MetadataFilters(filters=filter_list)
     
     # 5. Create retriever and custom prompt templates
-    retriever = index.as_retriever(
-        similarity_top_k=4,  # Retrieve top 4 most relevant chunks
-        filters=filters
-    )
+    retriever = index.as_retriever(**retriever_kwargs)
     
     # Render system prompt with user profile tags
     formatted_prompt_str = RAG_SYSTEM_PROMPT.format(
@@ -225,6 +241,6 @@ if __name__ == "__main__":
             result = query_rag(q, mock_user)
             print(f"\n💬 Answer:\n{result['answer']}")
             print(f"\n📎 Citations: {result['citations']}")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"❌ Error querying RAG: {e}")
         print("=" * 80)

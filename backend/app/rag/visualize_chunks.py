@@ -1,9 +1,11 @@
+import json
 import os
 import re
+
 import yaml
-import json
 from llama_index.core import Document
 from llama_index.core.node_parser import SentenceSplitter
+
 
 def custom_markdown_reader(file_path: str):
     """Loads markdown and parses frontmatter metadata."""
@@ -19,7 +21,7 @@ def custom_markdown_reader(file_path: str):
         frontmatter_text = frontmatter_match.group(1)
         try:
             metadata = yaml.safe_load(frontmatter_text) or {}
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
         text_content = content[frontmatter_match.end():]
         

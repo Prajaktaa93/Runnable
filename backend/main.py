@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
 from pydantic import BaseModel
-from fastapi import HTTPException
+
 from app.rag.query import query_rag
 
 #schemas and routes are in the one single file.
@@ -18,7 +18,7 @@ class ChatRequest(BaseModel):
 # Schema for the response we return to the frontend
 class ChatResponse(BaseModel):
     answer: str
-    citations: List[str]
+    citations: list[str]
     tokens_used: int = 0 
 # 1. Create a FastAPI app instance
 app = FastAPI(title="RUN agent!")
@@ -82,7 +82,7 @@ def chat_endpoint(request: ChatRequest):
             citations=result["citations"],
             tokens_used=result.get("tokens_used", 0)
         )
-    except Exception as e:
+    except Exception:  # noqa: BLE001
         import traceback
         err_msg = traceback.format_exc()
         raise HTTPException(status_code=500, detail=err_msg)
@@ -102,7 +102,7 @@ class PlanTask(BaseModel):
 class PlanResponse(BaseModel):
     title: str                # e.g. "10K Weekly Training Plan"
     icon: str                 # emoji icon: 🏃 💧 ⚡ 🥗
-    tasks: List[PlanTask]
+    tasks: list[PlanTask]
 
 @app.post("/api/plan", response_model=PlanResponse)
 def plan_endpoint(request: PlanRequest):
@@ -110,7 +110,10 @@ def plan_endpoint(request: PlanRequest):
     Takes a coach's text response and uses the Groq LLM to extract
     a structured checklist of trackable tasks (day-by-day or step-by-step).
     """
-    import os, json, re
+    import json
+    import os
+    import re
+
     from openai import OpenAI
 
     groq_client = OpenAI(
@@ -163,6 +166,6 @@ Rules:
             icon=data.get("icon", "🏃"),
             tasks=tasks
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Plan parsing failed: {str(e)}")
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Plan parsing failed: {e!s}")
 

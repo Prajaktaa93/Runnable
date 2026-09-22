@@ -1,11 +1,16 @@
 import os
-from qdrant_client import QdrantClient
-from llama_index.core import VectorStoreIndex, Settings
-from llama_index.embeddings.gemini import GeminiEmbedding
-from llama_index.vector_stores.qdrant import QdrantVectorStore
-from llama_index.core.vector_stores.types import MetadataFilter, MetadataFilters, FilterOperator
 
 from dotenv import load_dotenv
+from llama_index.core import Settings, VectorStoreIndex
+from llama_index.core.vector_stores.types import (
+    FilterOperator,
+    MetadataFilter,
+    MetadataFilters,
+)
+from llama_index.embeddings.gemini import GeminiEmbedding
+from llama_index.vector_stores.qdrant import QdrantVectorStore
+from qdrant_client import QdrantClient
+
 
 def test_retrieval():
     load_dotenv()

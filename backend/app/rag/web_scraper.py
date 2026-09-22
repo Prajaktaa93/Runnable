@@ -1,13 +1,12 @@
-from typing import Optional
-
-import requests
-from bs4 import BeautifulSoup
-from openai import OpenAI
 import json
 import os
 import re
 import time
+
+import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 
@@ -58,7 +57,7 @@ TRUSTED_URLS = [
 ]
 
 # ─── STEP 2 & 3: Scrape and clean a webpage ───
-def scrape_article(url: str) -> Optional[str]:
+def scrape_article(url: str) -> str | None:
     """Fetch a URL and extract the main text content."""
     try:
         headers = {
@@ -110,12 +109,12 @@ def scrape_article(url: str) -> Optional[str]:
 
     except requests.exceptions.HTTPError as e:
         print(f"  ❌ BLOCKED by website (HTTP {e.response.status_code}): {url}")
-        print(f"     → This site blocks scrapers. Skipping.")
+        print("     → This site blocks scrapers. Skipping.")
         return None
     except requests.exceptions.Timeout:
         print(f"  ❌ TIMEOUT: {url} took too long to respond. Skipping.")
         return None
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         print(f"  ❌ Error scraping {url}: {e}")
         return None
 
@@ -154,7 +153,7 @@ Article text:
             metadata["source"] = source
             print(f"  🏷️  Tagged as: {metadata.get('category')} / {metadata.get('topic')}")
             return metadata
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             if attempt < 2:
                 wait_time = (attempt + 1) * 5  # Wait 5s, then 10s
                 print(f"  ⏳ Groq rate limited. Retrying in {wait_time}s... (attempt {attempt+1}/3)")
@@ -248,7 +247,7 @@ def run_ingestion_pipeline():
 
     # ─── SUMMARY REPORT ───
     print("\n" + "=" * 60)
-    print(f"✅ PIPELINE COMPLETE")
+    print("✅ PIPELINE COMPLETE")
     print(f"   📄 Saved: {len(saved_files)}/{len(TRUSTED_URLS)} articles")
     print(f"   ❌ Failed to scrape: {len(failed_scrapes)} ({', '.join(failed_scrapes)})")
     print(f"   ⚠️  Failed to tag: {len(failed_tags)} ({', '.join(failed_tags)})")

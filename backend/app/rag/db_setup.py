@@ -1,7 +1,9 @@
 # qdrant db setup and creating collection
-from qdrant_client import QdrantClient
-from qdrant_client.http.models import Distance, VectorParams, PayloadSchemaType
 import os
+
+from qdrant_client import QdrantClient
+from qdrant_client.http.models import Distance, PayloadSchemaType, VectorParams
+
 
 def init_qdrant():
     print("Connecting to Qdrant Database...")
@@ -26,7 +28,7 @@ def init_qdrant():
             current_size = getattr(vectors, "size", None)
             # In case it is a dictionary of named vectors (e.g. {"": VectorParams(...)})
             if current_size is None and isinstance(vectors, dict):
-                first_vector = list(vectors.values())[0]
+                first_vector = next(iter(vectors.values()))
                 current_size = getattr(first_vector, "size", None)
 
             if current_size is not None and current_size != 768:
@@ -35,7 +37,7 @@ def init_qdrant():
                 exists = False
             else:
                 print(f"Collection '{collection_name}' already exists with correct dimensions. Setup skipped.")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"Error checking collection: {e}. Skipping setup.")
             
     if not exists:
@@ -59,7 +61,7 @@ def init_qdrant():
                 field_schema=PayloadSchemaType.KEYWORD
             )
             print(f"Verified or created payload index for '{field}'")
-        except Exception as e:
+        except Exception:  # noqa: BLE001, S110
             # Ignore if index is already present
             pass
             
