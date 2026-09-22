@@ -161,6 +161,8 @@ def query_rag(user_query: str, user_profile: dict) -> dict:
     
     # Render system prompt with user profile tags
     formatted_prompt_str = RAG_SYSTEM_PROMPT.format(
+        age=user_profile.get("age", "not specified"),
+        gender=user_profile.get("gender", "not specified"),
         experience_level=user_profile.get("experience_level", "all"),
         distance_tier=user_profile.get("distance_tier", "all"),
         context_str="{context_str}",

@@ -31,6 +31,8 @@ export async function sendChatMessage(
   message: string,
   experienceLevel: string = "all",
   distanceTier: string = "all",
+  age: string = "",
+  gender: string = "",
   signal?: AbortSignal
 ): Promise<ChatResponse> {
   const response = await fetch(`${API_URL}/api/chat`, {
@@ -42,6 +44,8 @@ export async function sendChatMessage(
       message: message,
       experience_level: experienceLevel,
       distance_tier: distanceTier,
+      age: age,
+      gender: gender,
     }),
     signal,
   });

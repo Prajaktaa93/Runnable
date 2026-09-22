@@ -12,6 +12,8 @@ class ChatRequest(BaseModel):
     message: str
     experience_level: str = "all"
     distance_tier: str = "all"
+    age: str = ""
+    gender: str = ""
 
 # Schema for the response we return to the frontend
 class ChatResponse(BaseModel):
@@ -65,7 +67,9 @@ def chat_endpoint(request: ChatRequest):
     # 1. Bind user parameters into a profile dictionary
     user_profile = {
         "experience_level": request.experience_level,
-        "distance_tier": request.distance_tier
+        "distance_tier": request.distance_tier,
+        "age": request.age,
+        "gender": request.gender
     }
     
     try:

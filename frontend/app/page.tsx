@@ -223,7 +223,7 @@ export default function Home() {
     abortControllerRef.current = controller;
 
     try {
-      const response = await sendChatMessage(userQuery, experienceLevel, distanceTier, controller.signal);
+      const response = await sendChatMessage(userQuery, experienceLevel, distanceTier, age, gender, controller.signal);
       const coachText = response.answer;
 
       setSessions((prev) =>

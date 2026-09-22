@@ -1,23 +1,26 @@
-''' Steps happening in ingestion process
+"""
+Steps happening in ingestion process:
 Data Loading: Gathers raw text, PDFs, web pages, or databases from your storage source.
 Text Chunking: Splits large documents into smaller, bite-sized pieces so the system can read and process them easily.
 Text Cleaning: Removes extra spaces, weird symbols, and hidden codes to keep the text clean.
 Embedding Generation: Passes each text chunk through an AI model to turn words into a list of numbers that capture the true meaning.
-Vector Storage: Saves the number lists and original text inside a vector database for future matching. '''
+Vector Storage: Saves the number lists and original text inside a vector database for future matching.
+"""
 
 import os
 import re
+from typing import Any
+
 import yaml
-from typing import List
-from qdrant_client import QdrantClient
-from llama_index.core import Document, SimpleDirectoryReader, StorageContext, VectorStoreIndex, Settings
+from llama_index.core import Document, Settings, StorageContext, VectorStoreIndex
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.embeddings.gemini import GeminiEmbedding
 from llama_index.vector_stores.qdrant import QdrantVectorStore
+from qdrant_client import QdrantClient
 
 
 # 1. Custom reader to parse YAML frontmatter from markdown files
-def custom_markdown_reader(file_path: str) -> List[Document]:
+def custom_markdown_reader(file_path: str) -> list[Document]:
     """Reads a markdown file, parses its YAML frontmatter as metadata, 
     and returns a LlamaIndex Document with metadata attached and frontmatter removed."""
     print(f"Reading file: {os.path.basename(file_path)}")
@@ -27,21 +30,21 @@ def custom_markdown_reader(file_path: str) -> List[Document]:
     # Match YAML frontmatter blocks enclosed in ---
     frontmatter_match = re.match(r"^---\s*\n(.*?)\n---\s*\n", content, re.DOTALL)
     
-    metadata = {}
+    metadata: dict[str, Any] = {}
     text_content = content
     
     if frontmatter_match:
         frontmatter_text = frontmatter_match.group(1)
         try:
             metadata = yaml.safe_load(frontmatter_text) or {}
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             print(f"  ⚠️ Error parsing frontmatter YAML for {file_path}: {e}")
         
         # Remove frontmatter block from text content so it doesn't get embedded
         text_content = content[frontmatter_match.end():]
         
     # Standardize metadata fields (lowercase strings)
-    clean_metadata = {}
+    clean_metadata: dict[str, Any] = {}
     for k, v in metadata.items():
         if isinstance(v, str):
             clean_metadata[k.strip().lower()] = v.strip()
@@ -57,9 +60,10 @@ def custom_markdown_reader(file_path: str) -> List[Document]:
         if key not in clean_metadata:
             clean_metadata[key] = "all"  # Default fallback
 
-    return [Document(text=text_content, metadata=clean_metadata)]
+    return [Document(text=text_content, extra_info=clean_metadata)]
 
-def run_ingestion():
+
+def run_ingestion() -> VectorStoreIndex | None:
     print("=" * 60)
     print("🚀 STARTING LLAMAINDEX DOCUMENT INGESTION")
     print("=" * 60)
@@ -88,17 +92,17 @@ def run_ingestion():
     data_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data")
     if not os.path.exists(data_dir):
         print(f"❌ Data directory does not exist: {data_dir}")
-        return
+        return None
         
     print(f"Loading documents manually from: {data_dir}")
-    documents = []
+    documents: list[Document] = []
     for filename in os.listdir(data_dir):
         if filename.endswith(".md"):
             file_path = os.path.join(data_dir, filename)
             try:
                 docs = custom_markdown_reader(file_path)
                 documents.extend(docs)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 print(f"  ❌ Error loading file {filename}: {e}")
                 
     print(f"Successfully loaded {len(documents)} documents.")
@@ -129,7 +133,6 @@ def run_ingestion():
     else:
         client = QdrantClient(url=qdrant_url)
 
-    
     vector_store = QdrantVectorStore(
         client=client,
         collection_name="running_knowledge"
@@ -148,6 +151,9 @@ def run_ingestion():
     print("✅ INGESTION & INDEXING COMPLETED SUCCESSFULLY!")
     print(f"All {len(nodes)} chunks have been embedded and stored in Qdrant.")
     print("=" * 60)
+
+    return index
+
 
 if __name__ == "__main__":
     run_ingestion()
